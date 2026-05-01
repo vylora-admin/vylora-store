@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['application_id', 'scope']);
-            $table->index(['application_id', 'application_user_id', 'key']);
+            $table->index(['application_id', 'application_user_id', 'key'], 'app_var_app_user_key_idx');
         });
     }
 
