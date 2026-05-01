@@ -31,9 +31,10 @@ class AuditLog extends Model
 
     public function getModelNameAttribute(): string
     {
-        if (!$this->model_type) {
+        if (! $this->model_type) {
             return 'System';
         }
+
         return class_basename($this->model_type);
     }
 

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\License;
-use App\Models\LicenseActivation;
 use Illuminate\Support\Facades\DB;
 
 class LicenseService
@@ -41,7 +40,7 @@ class LicenseService
     {
         $license = License::where('license_key', $licenseKey)->first();
 
-        if (!$license) {
+        if (! $license) {
             return ['success' => false, 'message' => 'License key not found.'];
         }
 
@@ -50,10 +49,10 @@ class LicenseService
         }
 
         if ($license->status !== 'active') {
-            return ['success' => false, 'message' => 'License is not active. Status: ' . $license->status];
+            return ['success' => false, 'message' => 'License is not active. Status: '.$license->status];
         }
 
-        if (!$license->canActivate()) {
+        if (! $license->canActivate()) {
             return ['success' => false, 'message' => 'Maximum activations reached.'];
         }
 
@@ -94,7 +93,7 @@ class LicenseService
     {
         $license = License::where('license_key', $licenseKey)->first();
 
-        if (!$license) {
+        if (! $license) {
             return ['success' => false, 'message' => 'License key not found.'];
         }
 
@@ -103,7 +102,7 @@ class LicenseService
             ->where('is_active', true)
             ->first();
 
-        if (!$activation) {
+        if (! $activation) {
             return ['success' => false, 'message' => 'No active activation found for this device.'];
         }
 
@@ -127,7 +126,7 @@ class LicenseService
     {
         $license = License::with('product')->where('license_key', $licenseKey)->first();
 
-        if (!$license) {
+        if (! $license) {
             return ['valid' => false, 'message' => 'License key not found.'];
         }
 

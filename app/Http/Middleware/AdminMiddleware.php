@@ -10,7 +10,7 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !$request->user()->isManager()) {
+        if (! $request->user() || ! $request->user()->isManager()) {
             abort(403, 'Access denied. Admin or Manager role required.');
         }
 

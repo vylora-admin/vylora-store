@@ -1,15 +1,26 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', sidebarOpen: true }" :class="{ 'dark': darkMode }">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+      x-data="{
+          darkMode: localStorage.getItem('darkMode') === null ? true : localStorage.getItem('darkMode') === 'true',
+          sidebarOpen: window.innerWidth >= 1024,
+          paletteOpen: false,
+          init() { this.$watch('darkMode', v => localStorage.setItem('darkMode', v)); }
+      }"
+      :class="{ 'dark': darkMode }"
+      @keydown.window.ctrl.k.prevent="paletteOpen = true"
+      @keydown.window.escape="paletteOpen = false">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'KeyVault') }} — @yield('title', 'Dashboard')</title>
+    <title>{{ \App\Models\Setting::get('site_name', config('app.name', 'KeyVault Pro')) }} — @yield('title', 'Dashboard')</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800,900&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    @php $accent = \App\Models\Setting::get('accent_color', '#6366f1'); @endphp
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -17,160 +28,117 @@
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        primary: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' },
+                        primary: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',950:'#1e1b4b' },
                         accent: { 50:'#fdf4ff',100:'#fae8ff',200:'#f5d0fe',300:'#f0abfc',400:'#e879f9',500:'#d946ef',600:'#c026d3',700:'#a21caf',800:'#86198f',900:'#701a75' },
-                    }
+                        ink: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#030712' }
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 30px -10px rgba(99,102,241,0.18)',
+                        'glow': '0 0 0 4px rgba(99,102,241,0.18)'
+                    },
+                    backdropBlur: { xs: '2px' }
                 }
             }
         }
     </script>
     <style>
+        :root { --accent: {{ $accent }}; }
+        * { -webkit-font-smoothing: antialiased; }
         [x-cloak] { display: none !important; }
-        .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.3); }
-        .dark .glass { background: rgba(30,30,50,0.7); border-color: rgba(255,255,255,0.08); }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .gradient-mesh { background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 50%, #f0e6ff 100%); }
-        .dark .gradient-mesh { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #151530 100%); }
-        .stat-card { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
-        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(99,102,241,0.25); }
-        .sidebar-link { transition: all 0.2s ease; }
-        .sidebar-link:hover, .sidebar-link.active { background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1)); }
-        .sidebar-link.active { border-right: 3px solid #6366f1; }
-        .dark .sidebar-link:hover, .dark .sidebar-link.active { background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2)); }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        .badge { @apply px-2.5 py-0.5 rounded-full text-xs font-semibold; }
-        ::-webkit-scrollbar { width: 6px; }
+
+        body { background: radial-gradient(60% 50% at 0% 0%, rgba(99,102,241,0.10) 0%, transparent 60%),
+                          radial-gradient(50% 40% at 100% 0%, rgba(217,70,239,0.10) 0%, transparent 60%),
+                          linear-gradient(180deg, #f6f8fb 0%, #eef1f7 100%); }
+        .dark body { background: radial-gradient(60% 50% at 0% 0%, rgba(99,102,241,0.18) 0%, transparent 60%),
+                                  radial-gradient(50% 40% at 100% 0%, rgba(168,85,247,0.16) 0%, transparent 60%),
+                                  linear-gradient(180deg, #0b0d18 0%, #0f1224 60%, #0a0a1f 100%); }
+
+        .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.55); }
+        .dark .glass { background: rgba(20,24,38,0.62); border-color: rgba(255,255,255,0.06); }
+
+        .glass-strong { background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); border: 1px solid rgba(15,23,42,0.06); }
+        .dark .glass-strong { background: rgba(15,18,30,0.85); border-color: rgba(255,255,255,0.06); }
+
+        .card-grad { background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(217,70,239,0.06) 100%); }
+        .dark .card-grad { background: linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(217,70,239,0.10) 100%); }
+
+        .gradient-text { background: linear-gradient(135deg, #6366f1 0%, #d946ef 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .stat-card { transition: transform .25s, box-shadow .25s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 22px 40px -18px rgba(99,102,241,0.35); }
+
+        .sidebar-link { transition: all .15s ease; }
+        .sidebar-link:hover { background: linear-gradient(90deg, rgba(99,102,241,0.10), rgba(217,70,239,0.07)); color: var(--accent); }
+        .sidebar-link.active { background: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(217,70,239,0.10)); color: var(--accent); border-right: 3px solid var(--accent); }
+        .dark .sidebar-link:hover, .dark .sidebar-link.active { background: linear-gradient(90deg, rgba(99,102,241,0.22), rgba(217,70,239,0.12)); }
+
+        .badge { padding: 0.15rem 0.55rem; border-radius: 999px; font-size: .68rem; font-weight: 700; letter-spacing: .02em; }
+        .badge-green { background: rgba(16,185,129,.12); color: #10b981; }
+        .badge-red { background: rgba(239,68,68,.12); color: #ef4444; }
+        .badge-yellow { background: rgba(245,158,11,.14); color: #f59e0b; }
+        .badge-blue { background: rgba(59,130,246,.14); color: #3b82f6; }
+        .badge-violet { background: rgba(139,92,246,.14); color: #8b5cf6; }
+        .badge-pink { background: rgba(236,72,153,.14); color: #ec4899; }
+
+        .input { @apply w-full px-3 py-2.5 rounded-xl bg-white/70 dark:bg-ink-900/40 border border-ink-200/70 dark:border-ink-700/60 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 text-sm; }
+        .btn { @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition; }
+        .btn-primary { @apply btn text-white shadow-soft; background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-ghost { @apply btn bg-white/60 dark:bg-ink-800/40 hover:bg-white dark:hover:bg-ink-800 border border-ink-200/60 dark:border-ink-700/60 text-ink-700 dark:text-ink-200; }
+        .btn-danger { @apply btn bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-300 border border-red-500/20; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.25); border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.4); }
+
+        @keyframes fadeIn { from { opacity:0; transform: translateY(6px) } to { opacity:1; transform:none } }
+        .animate-fade-in { animation: fadeIn .35s ease-out; }
+        @keyframes pulseDot { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+        .pulse-dot { animation: pulseDot 1.6s ease-in-out infinite; }
     </style>
+    @stack('head')
 </head>
-<body class="font-sans antialiased gradient-mesh min-h-screen">
-    <div class="flex min-h-screen">
-        {{-- Sidebar --}}
-        <aside :class="sidebarOpen ? 'w-64' : 'w-20'" class="fixed inset-y-0 left-0 z-30 glass border-r border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 flex flex-col">
-            {{-- Logo --}}
-            <div class="flex items-center h-16 px-4 border-b border-gray-200/50 dark:border-gray-700/50">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center shadow-lg shadow-primary-500/25">
-                        <i class="fas fa-key text-white text-sm"></i>
-                    </div>
-                    <span x-show="sidebarOpen" x-transition class="font-bold text-lg bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">KeyVault</span>
+<body class="font-sans text-ink-800 dark:text-ink-100 min-h-screen">
+
+<div class="flex min-h-screen">
+    @include('partials.sidebar')
+
+    <div :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'" class="flex-1 flex flex-col min-w-0 transition-all duration-200">
+        @include('partials.topbar')
+
+        <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-screen-2xl w-full mx-auto animate-fade-in">
+            @if (session('success'))
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+                     class="mb-4 flex items-center justify-between gap-3 rounded-2xl glass-strong px-4 py-3 border border-emerald-500/30">
+                    <span class="text-emerald-700 dark:text-emerald-300 text-sm font-medium">
+                        <i class="fas fa-circle-check mr-2"></i>{{ session('success') }}
+                    </span>
+                    <button @click="show=false" class="text-ink-400 hover:text-ink-600 dark:hover:text-white"><i class="fas fa-times"></i></button>
                 </div>
-            </div>
-
-            {{-- Navigation --}}
-            <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-                <a href="{{ route('dashboard') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-chart-line w-5 text-center text-primary-500"></i>
-                    <span x-show="sidebarOpen" x-transition class="text-sm font-medium">Dashboard</span>
-                </a>
-                <a href="{{ route('products.index') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                    <i class="fas fa-cube w-5 text-center text-blue-500"></i>
-                    <span x-show="sidebarOpen" x-transition class="text-sm font-medium">Products</span>
-                </a>
-                <a href="{{ route('licenses.index') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 {{ request()->routeIs('licenses.*') ? 'active' : '' }}">
-                    <i class="fas fa-key w-5 text-center text-emerald-500"></i>
-                    <span x-show="sidebarOpen" x-transition class="text-sm font-medium">Licenses</span>
-                </a>
-                <a href="{{ route('licenses.bulk-create') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 {{ request()->routeIs('licenses.bulk-create') ? 'active' : '' }}">
-                    <i class="fas fa-layer-group w-5 text-center text-amber-500"></i>
-                    <span x-show="sidebarOpen" x-transition class="text-sm font-medium">Bulk Generate</span>
-                </a>
-
-                @if(auth()->user()->isManager())
-                <div x-show="sidebarOpen" class="pt-4 pb-2 px-3">
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Administration</span>
-                </div>
-                <a href="{{ route('admin.users') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
-                    <i class="fas fa-users-gear w-5 text-center text-purple-500"></i>
-                    <span x-show="sidebarOpen" x-transition class="text-sm font-medium">Users</span>
-                </a>
-                <a href="{{ route('admin.audit-logs') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 {{ request()->routeIs('admin.audit-logs') ? 'active' : '' }}">
-                    <i class="fas fa-clock-rotate-left w-5 text-center text-rose-500"></i>
-                    <span x-show="sidebarOpen" x-transition class="text-sm font-medium">Audit Logs</span>
-                </a>
-                @endif
-            </nav>
-
-            {{-- Sidebar Footer --}}
-            <div class="p-3 border-t border-gray-200/50 dark:border-gray-700/50">
-                <button @click="sidebarOpen = !sidebarOpen" class="w-full flex items-center justify-center py-2 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
-                    <i :class="sidebarOpen ? 'fa-angles-left' : 'fa-angles-right'" class="fas"></i>
-                </button>
-            </div>
-        </aside>
-
-        {{-- Main Content --}}
-        <div :class="sidebarOpen ? 'ml-64' : 'ml-20'" class="flex-1 transition-all duration-300">
-            {{-- Top Bar --}}
-            <header class="sticky top-0 z-20 glass border-b border-gray-200/50 dark:border-gray-700/50">
-                <div class="flex items-center justify-between h-16 px-6">
-                    <div>
-                        <h1 class="text-lg font-bold text-gray-900 dark:text-white">@yield('title', 'Dashboard')</h1>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">@yield('subtitle', '')</p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        {{-- Dark Mode Toggle --}}
-                        <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)" class="w-10 h-10 rounded-xl glass flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-500 transition">
-                            <i x-show="!darkMode" class="fas fa-moon"></i>
-                            <i x-show="darkMode" x-cloak class="fas fa-sun text-yellow-400"></i>
-                        </button>
-
-                        {{-- User Menu --}}
-                        <div x-data="{ userMenu: false }" class="relative">
-                            <button @click="userMenu = !userMenu" class="flex items-center gap-3 px-3 py-2 rounded-xl glass hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
-                                <div class="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center text-white text-xs font-bold shadow">
-                                    {{ Auth::user()->initials }}
-                                </div>
-                                <div x-show="sidebarOpen" class="text-left hidden sm:block">
-                                    <p class="text-sm font-semibold text-gray-800 dark:text-white">{{ Auth::user()->name }}</p>
-                                    <p class="text-[10px] text-gray-500 capitalize">{{ Auth::user()->role }}</p>
-                                </div>
-                                <i class="fas fa-chevron-down text-xs text-gray-400"></i>
-                            </button>
-                            <div x-show="userMenu" @click.away="userMenu = false" x-cloak x-transition class="absolute right-0 mt-2 w-56 glass rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 py-2 z-50">
-                                <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
-                                    <i class="fas fa-user-circle w-4 text-gray-400"></i> Profile Settings
-                                </a>
-                                <hr class="my-1 border-gray-200/50 dark:border-gray-700/50">
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                                        <i class="fas fa-sign-out-alt w-4"></i> Sign Out
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {{-- Flash Messages --}}
-            @if(session('success'))
-            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)" x-transition class="mx-6 mt-4">
-                <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-sm">
-                    <i class="fas fa-check-circle"></i>
-                    <span>{{ session('success') }}</span>
-                    <button @click="show = false" class="ml-auto text-emerald-400 hover:text-emerald-600"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
-            @endif
-            @if(session('error'))
-            <div x-data="{ show: true }" x-show="show" x-transition class="mx-6 mt-4">
-                <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span>{{ session('error') }}</span>
-                    <button @click="show = false" class="ml-auto text-red-400 hover:text-red-600"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
             @endif
 
-            {{-- Page Content --}}
-            <main class="p-6 animate-fade-in">
-                @yield('content')
-            </main>
-        </div>
+            @if ($errors->any())
+                <div class="mb-4 rounded-2xl glass-strong px-4 py-3 border border-red-500/30">
+                    <p class="text-red-700 dark:text-red-300 text-sm font-semibold mb-1"><i class="fas fa-triangle-exclamation mr-2"></i>Please fix these errors:</p>
+                    <ul class="list-disc list-inside text-xs text-red-600 dark:text-red-300 space-y-1">
+                        @foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            @yield('content')
+        </main>
+
+        <footer class="px-6 py-4 text-xs text-ink-400 dark:text-ink-500 flex justify-between border-t border-ink-200/60 dark:border-ink-800/60">
+            <span>© {{ date('Y') }} {{ \App\Models\Setting::get('site_name', config('app.name', 'KeyVault Pro')) }}</span>
+            <span>v2.0 · KeyAuth-compatible API at <code class="text-primary-500">/api/1.3</code></span>
+        </footer>
     </div>
+</div>
+
+@include('partials.command-palette')
+
+@stack('scripts')
 </body>
 </html>

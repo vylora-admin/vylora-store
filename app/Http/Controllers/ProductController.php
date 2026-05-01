@@ -10,6 +10,7 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::withCount('licenses')->latest()->paginate(15);
+
         return view('products.index', compact('products'));
     }
 
@@ -39,6 +40,7 @@ class ProductController extends Controller
     {
         $product->loadCount('licenses');
         $licenses = $product->licenses()->latest()->paginate(15);
+
         return view('products.show', compact('product', 'licenses'));
     }
 
@@ -51,7 +53,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:products,slug,' . $product->id,
+            'slug' => 'nullable|string|max:255|unique:products,slug,'.$product->id,
             'description' => 'nullable|string',
             'version' => 'nullable|string|max:50',
             'is_active' => 'boolean',
@@ -67,6 +69,7 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         $product->delete();
+
         return redirect()->route('products.index')->with('success', 'Product deleted successfully.');
     }
 }

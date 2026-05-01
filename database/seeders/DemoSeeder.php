@@ -70,7 +70,7 @@ class DemoSeeder extends Seeder
             ],
         ];
 
-        $generator = new LicenseKeyGenerator();
+        $generator = new LicenseKeyGenerator;
 
         foreach ($products as $productData) {
             $product = Product::updateOrCreate(

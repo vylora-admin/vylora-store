@@ -54,7 +54,7 @@ class License extends Model
 
     public function isValid(): bool
     {
-        return $this->status === 'active' && !$this->isExpired();
+        return $this->status === 'active' && ! $this->isExpired();
     }
 
     public function canActivate(): bool
@@ -82,10 +82,11 @@ class License extends Model
         if ($search) {
             return $query->where(function ($q) use ($search) {
                 $q->where('license_key', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%")
-                  ->orWhere('customer_email', 'like', "%{$search}%");
+                    ->orWhere('customer_name', 'like', "%{$search}%")
+                    ->orWhere('customer_email', 'like', "%{$search}%");
             });
         }
+
         return $query;
     }
 }

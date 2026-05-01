@@ -1,0 +1,13 @@
+{
+    "slug": "auto-cleanup",
+    "name": "Auto Cleanup",
+    "version": "1.0.0",
+    "author": "KeyVault",
+    "description": "Automatically prune expired sessions, old logs, and expired blacklist entries on a schedule.",
+    "icon": "broom",
+    "entry": "index.php",
+    "config_schema": {
+        "log_retention_days": {"type": "int", "label": "Log retention days", "default": 30},
+        "session_cleanup_hours": {"type": "int", "label": "Session cleanup hours", "default": 24}
+    }
+}

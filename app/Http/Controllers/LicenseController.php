@@ -43,6 +43,7 @@ class LicenseController extends Controller
     public function create()
     {
         $products = Product::where('is_active', true)->get();
+
         return view('licenses.create', compact('products'));
     }
 
@@ -69,6 +70,7 @@ class LicenseController extends Controller
     public function bulkCreate()
     {
         $products = Product::where('is_active', true)->get();
+
         return view('licenses.bulk-create', compact('products'));
     }
 
@@ -92,21 +94,23 @@ class LicenseController extends Controller
 
         $licenses = $this->licenseService->createBulkLicenses($validated, $quantity, $format);
 
-        AuditService::log('licenses_bulk_created', null, null, ['quantity' => count($licenses)], count($licenses) . " licenses bulk-created");
+        AuditService::log('licenses_bulk_created', null, null, ['quantity' => count($licenses)], count($licenses).' licenses bulk-created');
 
         return redirect()->route('licenses.index')
-            ->with('success', count($licenses) . ' licenses created successfully.');
+            ->with('success', count($licenses).' licenses created successfully.');
     }
 
     public function show(License $license)
     {
         $license->load(['product', 'activations']);
+
         return view('licenses.show', compact('license'));
     }
 
     public function edit(License $license)
     {
         $products = Product::where('is_active', true)->get();
+
         return view('licenses.edit', compact('license', 'products'));
     }
 
@@ -131,6 +135,7 @@ class LicenseController extends Controller
     public function destroy(License $license)
     {
         $license->delete();
+
         return redirect()->route('licenses.index')->with('success', 'License deleted successfully.');
     }
 
@@ -138,6 +143,7 @@ class LicenseController extends Controller
     {
         $license->update(['status' => 'suspended']);
         AuditService::log('license_suspended', $license, null, null, "Suspended license: {$license->license_key}");
+
         return back()->with('success', 'License suspended.');
     }
 
@@ -147,6 +153,7 @@ class LicenseController extends Controller
         $license->activations()->update(['is_active' => false, 'deactivated_at' => now()]);
         $license->update(['current_activations' => 0]);
         AuditService::log('license_revoked', $license, null, null, "Revoked license: {$license->license_key}");
+
         return back()->with('success', 'License revoked and all activations deactivated.');
     }
 
@@ -154,6 +161,7 @@ class LicenseController extends Controller
     {
         $license->update(['status' => 'active']);
         AuditService::log('license_reactivated', $license, null, null, "Reactivated license: {$license->license_key}");
+
         return back()->with('success', 'License reactivated.');
     }
 
@@ -173,7 +181,7 @@ class LicenseController extends Controller
 
         $licenses = $query->latest()->get();
 
-        $filename = 'licenses_export_' . now()->format('Y-m-d_His') . '.csv';
+        $filename = 'licenses_export_'.now()->format('Y-m-d_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',

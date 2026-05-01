@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -47,6 +48,26 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class);
     }
 
+    public function applications(): HasMany
+    {
+        return $this->hasMany(Application::class, 'owner_id');
+    }
+
+    public function twoFactorSecret(): HasOne
+    {
+        return $this->hasOne(TwoFactorSecret::class);
+    }
+
+    public function seller(): HasOne
+    {
+        return $this->hasOne(Seller::class);
+    }
+
+    public function isSeller(): bool
+    {
+        return $this->role === 'seller';
+    }
+
     public function getInitialsAttribute(): string
     {
         $words = explode(' ', $this->name);
@@ -54,6 +75,7 @@ class User extends Authenticatable
         foreach (array_slice($words, 0, 2) as $word) {
             $initials .= strtoupper(substr($word, 0, 1));
         }
+
         return $initials;
     }
 }
