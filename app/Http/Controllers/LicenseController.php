@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\License;
 use App\Models\Product;
+use App\Services\AuditService;
 use App\Services\LicenseService;
 use Illuminate\Http\Request;
 
@@ -58,7 +59,9 @@ class LicenseController extends Controller
             'key_format' => 'required|in:standard,extended,short,uuid',
         ]);
 
-        $this->licenseService->createLicense($validated);
+        $license = $this->licenseService->createLicense($validated);
+
+        AuditService::log('license_created', $license, null, $validated, "Created license: {$license->license_key}");
 
         return redirect()->route('licenses.index')->with('success', 'License created successfully.');
     }
@@ -88,6 +91,8 @@ class LicenseController extends Controller
         unset($validated['quantity'], $validated['key_format']);
 
         $licenses = $this->licenseService->createBulkLicenses($validated, $quantity, $format);
+
+        AuditService::log('licenses_bulk_created', null, null, ['quantity' => count($licenses)], count($licenses) . " licenses bulk-created");
 
         return redirect()->route('licenses.index')
             ->with('success', count($licenses) . ' licenses created successfully.');
@@ -132,6 +137,7 @@ class LicenseController extends Controller
     public function suspend(License $license)
     {
         $license->update(['status' => 'suspended']);
+        AuditService::log('license_suspended', $license, null, null, "Suspended license: {$license->license_key}");
         return back()->with('success', 'License suspended.');
     }
 
@@ -140,12 +146,63 @@ class LicenseController extends Controller
         $license->update(['status' => 'revoked']);
         $license->activations()->update(['is_active' => false, 'deactivated_at' => now()]);
         $license->update(['current_activations' => 0]);
+        AuditService::log('license_revoked', $license, null, null, "Revoked license: {$license->license_key}");
         return back()->with('success', 'License revoked and all activations deactivated.');
     }
 
     public function reactivate(License $license)
     {
         $license->update(['status' => 'active']);
+        AuditService::log('license_reactivated', $license, null, null, "Reactivated license: {$license->license_key}");
         return back()->with('success', 'License reactivated.');
+    }
+
+    public function export(Request $request)
+    {
+        $query = License::with('product');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
+        }
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        $licenses = $query->latest()->get();
+
+        $filename = 'licenses_export_' . now()->format('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($licenses) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['License Key', 'Product', 'Customer Name', 'Customer Email', 'Type', 'Status', 'Activations', 'Max Activations', 'Expires At', 'Created At']);
+
+            foreach ($licenses as $license) {
+                fputcsv($file, [
+                    $license->license_key,
+                    $license->product->name ?? 'N/A',
+                    $license->customer_name,
+                    $license->customer_email,
+                    $license->type,
+                    $license->status,
+                    $license->current_activations,
+                    $license->max_activations,
+                    $license->expires_at?->format('Y-m-d'),
+                    $license->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+            fclose($file);
+        };
+
+        AuditService::log('licenses_exported', null, null, ['count' => $licenses->count()], "Exported {$licenses->count()} licenses");
+
+        return response()->stream($callback, 200, $headers);
     }
 }

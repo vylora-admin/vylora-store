@@ -1,65 +1,48 @@
 @extends('layouts.app')
-
 @section('title', 'Products')
+@section('subtitle', 'Manage your software products')
 
 @section('content')
 <div class="flex items-center justify-between mb-6">
-    <div>
-        <h1 class="text-3xl font-bold text-gray-900">Products</h1>
-        <p class="text-gray-600 mt-1">Manage your software products</p>
-    </div>
-    <a href="{{ route('products.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-        <i class="fas fa-plus mr-2"></i>Add Product
+    <div></div>
+    <a href="{{ route('products.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all">
+        <i class="fas fa-plus"></i> Add Product
     </a>
 </div>
 
-<div class="bg-white rounded-lg shadow overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Licenses</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-            @forelse($products as $product)
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4">
-                        <a href="{{ route('products.show', $product) }}" class="text-indigo-600 font-medium hover:underline">{{ $product->name }}</a>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500 font-mono">{{ $product->slug }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">{{ $product->version ?? '-' }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900">{{ $product->licenses_count }}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded-full {{ $product->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
-                            {{ $product->is_active ? 'Active' : 'Inactive' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-right space-x-2">
-                        <a href="{{ route('products.edit', $product) }}" class="text-gray-600 hover:text-indigo-600"><i class="fas fa-edit"></i></a>
-                        <form action="{{ route('products.destroy', $product) }}" method="POST" class="inline" onsubmit="return confirm('Delete this product and all its licenses?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="text-gray-600 hover:text-red-600"><i class="fas fa-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                        <i class="fas fa-box text-4xl mb-2"></i>
-                        <p>No products yet. <a href="{{ route('products.create') }}" class="text-indigo-600 hover:underline">Create one</a>.</p>
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-</div>
-
-<div class="mt-4">
-    {{ $products->links() }}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    @forelse($products as $product)
+    <div class="stat-card glass rounded-2xl p-5">
+        <div class="flex items-start justify-between mb-3">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-primary-600 flex items-center justify-center shadow-lg">
+                <i class="fas fa-cube text-white"></i>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $product->is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-500' }}">
+                {{ $product->is_active ? 'Active' : 'Inactive' }}
+            </span>
+        </div>
+        <h3 class="font-bold text-gray-900 dark:text-white">{{ $product->name }}</h3>
+        <p class="text-xs text-gray-500 font-mono mb-3">{{ $product->slug }} · v{{ $product->version ?? '1.0' }}</p>
+        @if($product->description)
+        <p class="text-xs text-gray-500 mb-3 line-clamp-2">{{ $product->description }}</p>
+        @endif
+        <div class="flex items-center justify-between pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
+            <span class="text-xs text-gray-500"><i class="fas fa-key mr-1 text-primary-400"></i>{{ $product->licenses_count ?? $product->licenses()->count() }} licenses</span>
+            <div class="flex gap-1">
+                <a href="{{ route('products.show', $product) }}" class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition"><i class="fas fa-eye text-xs"></i></a>
+                <a href="{{ route('products.edit', $product) }}" class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"><i class="fas fa-pen text-xs"></i></a>
+                <form method="POST" action="{{ route('products.destroy', $product) }}" onsubmit="return confirm('Delete this product?')">
+                    @csrf @method('DELETE')
+                    <button class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"><i class="fas fa-trash text-xs"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+    @empty
+    <div class="col-span-full glass rounded-2xl p-12 text-center">
+        <i class="fas fa-cube text-4xl text-gray-300 mb-3"></i>
+        <p class="text-gray-400">No products yet. Create your first product!</p>
+    </div>
+    @endforelse
 </div>
 @endsection
