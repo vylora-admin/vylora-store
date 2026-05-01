@@ -1,0 +1,13 @@
+{
+    "slug": "discord-alerts",
+    "name": "Discord Alerts",
+    "version": "1.0.0",
+    "author": "KeyVault",
+    "description": "Send rich Discord embeds when critical security events happen (failed logins, bans, integrity check failures, etc.)",
+    "icon": "discord",
+    "entry": "index.php",
+    "config_schema": {
+        "webhook_url": {"type": "string", "label": "Discord webhook URL"},
+        "trigger_levels": {"type": "string", "label": "Trigger levels (comma-separated)", "default": "warning,error,critical"}
+    }
+}
