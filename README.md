@@ -1,66 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# KeyVault - License Key Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-featured license key management system built with Laravel. Generate, manage, validate, and track software license keys with a clean web UI and REST API.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Web Dashboard
+- **Dashboard** with real-time statistics (total products, licenses, activations, expired/suspended counts)
+- **Product Management** — CRUD operations for software products
+- **License Management** — Create, edit, search, filter, suspend, revoke, and reactivate licenses
+- **Bulk Key Generation** — Generate up to 500 license keys at once
+- **Activation Tracking** — View all device activations per license
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### License Key Formats
+- **Standard**: `XXXX-XXXX-XXXX-XXXX`
+- **Extended**: `XXXX-XXXX-XXXX-XXXX-XXXX`
+- **Short**: `XXXX-XXXX-XXXX`
+- **UUID**: Standard UUID v4
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### License Types
+- Trial, Standard, Extended, Lifetime
 
-## Learning Laravel
+### REST API
+Integrate license validation into your software:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```bash
+# Validate a license
+POST /api/v1/licenses/validate
+{"license_key": "XXXX-XXXX-XXXX-XXXX"}
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# Activate a license on a device
+POST /api/v1/licenses/activate
+{"license_key": "XXXX-XXXX-XXXX-XXXX", "hardware_id": "device-123", "machine_name": "My PC"}
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Deactivate a license
+POST /api/v1/licenses/deactivate
+{"license_key": "XXXX-XXXX-XXXX-XXXX", "hardware_id": "device-123"}
+```
 
-## Laravel Sponsors
+## Installation
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Requirements
+- PHP 8.1+
+- Composer
+- SQLite (default) or MySQL/PostgreSQL
 
-### Premium Partners
+### Setup
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+# Clone the repository
+git clone <repo-url>
+cd license-management
 
-## Contributing
+# Install dependencies
+composer install
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# Configure environment
+cp .env.example .env
+php artisan key:generate
 
-## Code of Conduct
+# Create database (SQLite)
+touch database/database.sqlite
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Run migrations
+php artisan migrate
 
-## Security Vulnerabilities
+# (Optional) Seed demo data
+php artisan db:seed --class=DemoSeeder
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# Start the development server
+php artisan serve
+```
+
+Visit `http://localhost:8000` to access the dashboard.
+
+## Database Schema
+
+### Products
+| Column | Type | Description |
+|--------|------|-------------|
+| name | string | Product name |
+| slug | string | URL-friendly identifier |
+| description | text | Product description |
+| version | string | Current version |
+| is_active | boolean | Whether product is active |
+
+### Licenses
+| Column | Type | Description |
+|--------|------|-------------|
+| product_id | FK | Associated product |
+| license_key | string | Unique license key |
+| customer_name | string | Customer name |
+| customer_email | string | Customer email |
+| type | enum | trial, standard, extended, lifetime |
+| status | enum | active, inactive, expired, suspended, revoked |
+| max_activations | integer | Maximum allowed activations |
+| current_activations | integer | Current active count |
+| issued_at | timestamp | When the license was issued |
+| expires_at | timestamp | Expiration date (null = never) |
+
+### License Activations
+| Column | Type | Description |
+|--------|------|-------------|
+| license_id | FK | Associated license |
+| machine_name | string | Device name |
+| hardware_id | string | Unique hardware identifier |
+| ip_address | string | Client IP |
+| domain | string | Associated domain |
+| is_active | boolean | Whether activation is current |
+
+## Tech Stack
+- **Backend**: Laravel 10
+- **Frontend**: Blade templates + Tailwind CSS (via CDN)
+- **Database**: SQLite (configurable)
+- **Icons**: Font Awesome 6
 
 ## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT
